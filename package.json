@@ -1,0 +1,11 @@
+{
+  "name": "pmo-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local kanban board for the PMO API",
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

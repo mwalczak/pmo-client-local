@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMO Board</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/styles.css">
+<script type="module" src="/js/main.js"></script>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <form id="login-form">
+    <h1>PMO Board</h1>
+    <p>Enter your PMO API key (<code>pmo_u_…</code>). It is stored only in this browser.</p>
+    <input id="key-input" class="input" type="password" placeholder="pmo_u_…" autocomplete="off" required>
+    <button class="btn primary" type="submit">Connect</button>
+    <div id="login-error" class="error"></div>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <span class="brand">PMO</span>
+    <nav id="nav"></nav>
+    <select id="project" class="input" aria-label="Project"></select>
+    <span class="spacer"></span>
+    <span id="me" class="me"></span>
+    <button id="logout" class="btn">Log out</button>
+  </header>
+  <main id="view" class="view"></main>
+</section>
+
+<div id="toasts" popover="manual"></div>
+</body>
+</html>
