@@ -1,9 +1,9 @@
 // Milestones of the selected project.
 import { api } from "../api.js";
-import { app, isAdmin, currentProject } from "../state.js";
+import { app, STATUSES, isAdmin, currentProject } from "../state.js";
 import { html, formDialog, confirmDialog, tableHtml, onActions, toast, diff, fmtDay } from "../ui.js";
 
-const OPEN = new Set(["reported", "accepted", "in_progress"]);
+const OPEN = new Set(STATUSES.filter((s) => s.open).map((s) => s.id));
 
 function fields(m = {}) {
   const f = [

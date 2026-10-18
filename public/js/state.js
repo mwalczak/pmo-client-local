@@ -2,9 +2,12 @@
 import { api } from "./api.js";
 
 export const STATUSES = [
-  { id: "reported", label: "Reported" },
-  { id: "accepted", label: "Accepted" },
-  { id: "in_progress", label: "In progress" },
+  { id: "reported", label: "Reported", open: true },
+  { id: "accepted", label: "Accepted", open: true },
+  { id: "in_progress", label: "In progress", open: true },
+  // Display order differs from the API's: in_review is UAT after release, not code review.
+  { id: "waiting_for_release", label: "Waiting for release", open: true },
+  { id: "in_review", label: "In review (UAT)", open: true },
   { id: "done", label: "Done" },
   { id: "wont_fix", label: "Won't fix" },
   { id: "duplicate", label: "Duplicate" },
