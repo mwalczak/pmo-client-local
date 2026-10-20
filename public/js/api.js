@@ -82,6 +82,13 @@ export const api = {
     events: (key) => get(`/v1/issues/${e(key)}/events`),
   },
 
+  comments: {
+    list: (issue) => get(`/v1/issues/${e(issue)}/comments`),
+    create: (issue, body) => post(`/v1/issues/${e(issue)}/comments`, body),
+    update: (id, body) => patch(`/v1/comments/${e(id)}`, body),
+    delete: (id) => del(`/v1/comments/${e(id)}`),
+  },
+
   attachments: {
     list: (issue) => get(`/v1/issues/${e(issue)}/attachments`),
     upload: (issue, file) => {

@@ -74,6 +74,7 @@ export default {
         ${i.milestone ? html`<span class="tag">◆ ${i.milestone.name}</span>` : ""}
         ${i.private ? html`<span class="tag">private</span>` : ""}
         ${i.duplicate_of ? html`<span>→ ${i.duplicate_of}</span>` : ""}
+        ${i.comment_count ? html`<span class="comment-count" title="${i.comment_count} comment${i.comment_count === 1 ? "" : "s"}">💬 ${i.comment_count}</span>` : ""}
       </div>
     </article>`;
 
@@ -114,8 +115,14 @@ export default {
     });
     board.addEventListener("dragend", () => { clearTargets(); dragKey = null; });
     board.addEventListener("dragover", (e) => {
+      if (!dragKey) return;
+      // Scroll the board while a card is held near its left/right edge.
+      const { left, right } = board.getBoundingClientRect();
+      const edge = 80;
+      if (e.clientX > right - edge) board.scrollLeft += 20;
+      else if (e.clientX < left + edge) board.scrollLeft -= 20;
       const col = e.target.closest(".column");
-      if (!col || !dragKey) return;
+      if (!col) return;
       e.preventDefault();
       if (!col.classList.contains("drop-target")) { clearTargets(); col.classList.add("drop-target"); }
     });

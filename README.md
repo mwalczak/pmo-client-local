@@ -22,8 +22,8 @@ Open <http://localhost:5173> and paste your PMO API key (`pmo_u_…` for a user,
 
 | Screen | What you can do |
 |---|---|
-| **Board** | One column per status (Reported → Accepted → In progress → Waiting for release → In review (UAT) → Done / Won't fix / Duplicate). Drag a card to change its status. Filter by text, type, priority, milestone and platform. Create issues, including the reporter and attachments. |
-| **Issue** | Edit title, description, status, type, priority, platform, milestone, privacy and duplicate-of. Preview, upload, download and delete screenshots and videos. Read the issue's full history. |
+| **Board** | One column per status (Reported → Accepted → In progress → Waiting for release → In review (UAT) → Done / Won't fix / Duplicate). Drag a card to change its status; the board scrolls when you hold a card near its edge. Cards show their comment count. Filter by text, type, priority, milestone and platform. Create issues, including the reporter and attachments. |
+| **Issue** | Edit title, description, status, type, priority, platform, milestone, privacy and duplicate-of. Preview, upload, download and delete screenshots and videos. Comment Jira-style: press <kbd>M</kbd> to write, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to save, edit or delete your comments, sort newest/oldest first; admins can post internal comments. Read the issue's full history. |
 | **Milestones** | Create, edit, close/reopen and delete. See issue progress and overdue dates, and jump to the board filtered by milestone. |
 | **Projects** | Create projects and configure their issue types and platforms. |
 | **Users** *(admin)* | Search, create (optionally e-mailing a key), change role, delete, manage each user's keys. |

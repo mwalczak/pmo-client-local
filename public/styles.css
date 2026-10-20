@@ -140,6 +140,29 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .timeline li { border-left: 2px solid var(--border); padding-left: 10px; }
 
+/* comments */
+.tab-count { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 9px; background: var(--column); border: 1px solid var(--border); font-size: 11px; line-height: 16px; text-align: center; color: var(--text); }
+.tab-count:empty { display: none; }
+.comment-count { margin-left: auto; white-space: nowrap; }
+.avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; background: hsl(var(--hue) 55% 45%); }
+.composer, .comment { display: flex; gap: 12px; align-items: flex-start; }
+.composer { margin-bottom: 16px; }
+.composer-main, .comment-main { flex: 1; min-width: 0; }
+.composer-placeholder { width: 100%; text-align: left; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: text; }
+.composer-placeholder:hover { border-color: var(--muted); }
+.composer-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.composer .tip { margin: 6px 0 0; }
+kbd { font: 11px ui-monospace, monospace; padding: 0 4px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 3px; background: var(--column); }
+.comments-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.comment-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.comment-body { margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
+.comment.internal .comment-main { background: color-mix(in srgb, var(--p3) 10%, transparent); border-left: 3px solid var(--p3); padding: 6px 10px; border-radius: 0 6px 6px 0; }
+.internal-tag { color: var(--p3); border-color: currentColor; }
+.comment-actions { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.link-btn { background: none; border: none; padding: 0; color: var(--muted); font-size: 12px; }
+.link-btn:hover { color: var(--accent); text-decoration: underline; }
+
 /* toasts */
 /* a manual popover so toasts render in the top layer, above open dialogs */
 #toasts { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible; display: grid; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
