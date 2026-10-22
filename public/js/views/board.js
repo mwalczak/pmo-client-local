@@ -10,6 +10,8 @@ export default {
   mount(root) {
     const project = currentProject();
     const filters = { q: "", type: "", priority: "", milestone: app.boardMilestone ?? "", platform: "" };
+    // Like PMO, the board starts on the open milestone, unless one was picked (e.g. from Milestones).
+    let startOnOpenMilestone = app.boardMilestone == null;
     app.boardMilestone = null;
     let issues = [];
     let milestones = [];
@@ -40,7 +42,8 @@ export default {
       root.querySelector("[data-count]").textContent = "Loading…";
       try {
         [issues, milestones] = await Promise.all([
-          api.issues.listAll(project.key, { sort: "priority" }),
+          // Every milestone's issues: PMO's default is the open milestone only; the filter below narrows it.
+          api.issues.listAll(project.key, { sort: "priority", milestone: "all" }),
           api.milestones.list(project.key).catch(() => []),
         ]);
       } catch (err) {
@@ -50,6 +53,10 @@ export default {
       const sel = root.querySelector('[data-f="milestone"]');
       sel.innerHTML = html`<option value="">All milestones</option><option value="none">No milestone</option>${milestones.map((m) =>
         html`<option value="${m.id}">${m.name}${m.state === "closed" ? " (closed)" : ""}</option>`)}`;
+      if (startOnOpenMilestone) {
+        filters.milestone = milestones.find((m) => m.state === "open")?.id ?? "";
+        startOnOpenMilestone = false;
+      }
       sel.value = filters.milestone;
       render();
     }

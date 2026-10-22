@@ -5,13 +5,15 @@ import { html, formDialog, confirmDialog, tableHtml, onActions, toast, diff, fmt
 
 const OPEN = new Set(STATUSES.filter((s) => s.open).map((s) => s.id));
 
-function fields(m = {}) {
+// A project has at most one open milestone (new issues go into it), so `openName` is the one already open, if any.
+function fields(m = {}, openName = null) {
   const f = [
     { name: "name", label: "Name", required: true, value: m.name, placeholder: "v1.0" },
     { name: "description", label: "Description", type: "textarea", value: m.description ?? "", rows: 3 },
     { name: "due_on", label: "Due on", type: "date", value: m.due_on ?? "" },
   ];
-  if (m.id) f.push({ name: "state", label: "State", type: "select", value: m.state, options: [["open", "Open"], ["closed", "Closed"]] });
+  const label = openName && openName !== m.name ? `State (“${openName}” is open: close it first to open another)` : "State";
+  f.push({ name: "state", label, type: "select", value: m.state ?? (openName ? "closed" : "open"), options: [["open", "Open"], ["closed", "Closed"]] });
   return f;
 }
 
@@ -35,12 +37,14 @@ export default {
       <div data-list><p class="muted">Loading…</p></div>`;
 
     root.querySelector("[data-state]").addEventListener("change", (e) => { state = e.target.value; load(); });
-    root.querySelector("[data-new]")?.addEventListener("click", () => formDialog({
+    root.querySelector("[data-new]")?.addEventListener("click", async () => formDialog({
       title: `New milestone in ${project.key}`,
-      fields: fields(),
+      fields: fields({}, (await api.milestones.list(project.key, "open").catch(() => []))[0]?.name ?? null),
       submitLabel: "Create",
       onSubmit: async (v) => {
-        await api.milestones.create(project.key, { name: v.name, description: v.description || null, due_on: v.due_on || null });
+        await api.milestones.create(project.key, {
+          name: v.name, description: v.description || null, due_on: v.due_on || null, state: v.state,
+        });
         toast(`Milestone ${v.name} created`);
         load();
       },
@@ -50,7 +54,8 @@ export default {
       try {
         const [list, issues] = await Promise.all([
           api.milestones.list(project.key, state || undefined),
-          api.issues.listAll(project.key).catch(() => []),
+          // PMO lists the open milestone's issues by default; progress needs every milestone's.
+          api.issues.listAll(project.key, { milestone: "all" }).catch(() => []),
         ]);
         milestones = list;
         counts = new Map();
@@ -96,10 +101,14 @@ export default {
       board: (i) => { app.boardMilestone = milestones[i].id; location.hash = "#/board"; },
       edit: async (i) => {
         let m;
-        try { m = await api.milestones.get(milestones[i].id); } catch (err) { return toast(err.message, true); }
+        let openName = null;
+        try {
+          m = await api.milestones.get(milestones[i].id);
+          openName = (await api.milestones.list(project.key, "open"))[0]?.name ?? null;
+        } catch (err) { return toast(err.message, true); }
         formDialog({
           title: `Edit ${m.name}`,
-          fields: fields(m),
+          fields: fields(m, openName),
           onSubmit: async (v) => {
             const patch = diff({ ...m, description: m.description ?? "", due_on: m.due_on ?? "" }, v);
             if ("due_on" in patch && patch.due_on === "") patch.due_on = null;
