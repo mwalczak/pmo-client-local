@@ -9,9 +9,8 @@ export default {
   usesProject: true,
   mount(root) {
     const project = currentProject();
-    const filters = { q: "", type: "", priority: "", milestone: app.boardMilestone ?? "", platform: "" };
-    // Like PMO, the board starts on the open milestone, unless one was picked (e.g. from Milestones).
-    let startOnOpenMilestone = app.boardMilestone == null;
+    // Like PMO, the board shows the current (open) milestone unless one was picked (e.g. from Milestones).
+    const filters = { q: "", type: "", priority: "", milestone: app.boardMilestone ?? "current", platform: "" };
     app.boardMilestone = null;
     let issues = [];
     let milestones = [];
@@ -21,7 +20,7 @@ export default {
         <input class="input" data-f="q" type="search" placeholder="Filter cards…">
         <select class="input" data-f="type"><option value="">All types</option>${typeOptions(project).map(([id, l]) => html`<option value="${id}">${l}</option>`)}</select>
         <select class="input" data-f="priority"><option value="">All priorities</option>${PRIORITIES.map((p) => html`<option>${p}</option>`)}</select>
-        <select class="input" data-f="milestone"><option value="">All milestones</option></select>
+        <select class="input" data-f="milestone"><option value="current">Current milestone</option></select>
         ${project.platforms.length ? html`<select class="input" data-f="platform"><option value="">All platforms</option>${project.platforms.map((p) => html`<option value="${p.id}">${p.label}</option>`)}</select>` : ""}
         <button class="btn" data-refresh>↻ Refresh</button>
         <span class="spacer"></span>
@@ -51,23 +50,32 @@ export default {
         return toast(`Failed to load issues: ${err.message}`, true);
       }
       const sel = root.querySelector('[data-f="milestone"]');
-      sel.innerHTML = html`<option value="">All milestones</option><option value="none">No milestone</option>${milestones.map((m) =>
+      const open = milestones.find((m) => m.state === "open");
+      sel.innerHTML = html`<option value="current">${open ? `Current (${open.name})` : "Current: none open"}</option><option value="">All milestones</option><option value="none">No milestone</option>${milestones.map((m) =>
         html`<option value="${m.id}">${m.name}${m.state === "closed" ? " (closed)" : ""}</option>`)}`;
-      if (startOnOpenMilestone) {
-        filters.milestone = milestones.find((m) => m.state === "open")?.id ?? "";
-        startOnOpenMilestone = false;
-      }
       sel.value = filters.milestone;
       render();
     }
 
+    // "current" is the open milestone, whichever it is now; with none open it shows every issue, as PMO does.
+    function milestoneFilter() {
+      if (filters.milestone !== "current") return filters.milestone;
+      return milestones.find((m) => m.state === "open")?.id ?? "";
+    }
+
+    function matchesMilestone(issue, milestone) {
+      if (!milestone) return true;
+      return milestone === "none" ? !issue.milestone : issue.milestone?.id === milestone;
+    }
+
     function visible() {
       const q = filters.q.toLowerCase();
+      const milestone = milestoneFilter();
       return issues.filter((i) =>
         (!filters.type || i.type === filters.type) &&
         (!filters.priority || i.priority === filters.priority) &&
         (!filters.platform || i.platform === filters.platform) &&
-        (!filters.milestone || (filters.milestone === "none" ? !i.milestone : i.milestone?.id === filters.milestone)) &&
+        matchesMilestone(i, milestone) &&
         (!q || `${i.key} ${i.title} ${i.description ?? ""}`.toLowerCase().includes(q)));
     }
 
