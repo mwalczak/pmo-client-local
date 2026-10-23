@@ -291,7 +291,7 @@ export async function openIssue(key, { onChange } = {}) {
         platformField,
         {
           name: "milestone_id", label: "Milestone", type: "select", value: issue.milestone?.id ?? "",
-          options: [["", "—"], ...milestones.map((m) => [m.id, m.state === "closed" ? `${m.name} (closed)` : m.name])],
+          options: [["", "—"], ...milestones.map((m) => [m.id, m.state === "open" ? m.name : `${m.name} (${m.state})`])],
         },
         { name: "private", label: "Private (admins and the reporter only)", type: "checkbox", value: issue.private, wrapClass: "span2" },
       ];
@@ -511,8 +511,11 @@ export function newIssueDialog(project, milestones, { onCreated } = {}) {
   }
   if (canTriage()) {
     fields.push({ name: "priority", label: "Priority", type: "select", value: "P3", options: PRIORITIES.map((p) => [p, p]) });
-    if (milestones.length) {
-      fields.push({ name: "milestone_id", label: "Milestone", type: "select", options: [["", "—"], ...milestones.filter((m) => m.state === "open").map((m) => [m.id, m.name])] });
+    // Without a pick, PMO puts it into the open milestone; planned ones take ideas for later.
+    const open = milestones.find((m) => m.state === "open");
+    const planned = milestones.filter((m) => m.state === "planned");
+    if (open || planned.length) {
+      fields.push({ name: "milestone_id", label: "Milestone", type: "select", options: [["", open ? `Current (${open.name})` : "—"], ...planned.map((m) => [m.id, `${m.name} (planned)`])] });
     }
     fields.push(
       { name: "reporter_email", label: "Reporter e-mail", type: "email", required: app.me.kind === "app", hint: app.me.kind === "app" ? "Apps must name the reporter." : "Leave empty to report as yourself. A new e-mail gets an account and a key." },

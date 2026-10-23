@@ -52,7 +52,7 @@ export default {
       const sel = root.querySelector('[data-f="milestone"]');
       const open = milestones.find((m) => m.state === "open");
       sel.innerHTML = html`<option value="current">${open ? `Current (${open.name})` : "Current: none open"}</option><option value="">All milestones</option><option value="none">No milestone</option>${milestones.map((m) =>
-        html`<option value="${m.id}">${m.name}${m.state === "closed" ? " (closed)" : ""}</option>`)}`;
+        html`<option value="${m.id}">${m.name}${m.state === "open" ? "" : ` (${m.state})`}</option>`)}`;
       sel.value = filters.milestone;
       render();
     }

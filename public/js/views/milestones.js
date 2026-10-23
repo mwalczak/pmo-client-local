@@ -5,7 +5,10 @@ import { html, formDialog, confirmDialog, tableHtml, onActions, toast, diff, fmt
 
 const OPEN = new Set(STATUSES.filter((s) => s.open).map((s) => s.id));
 
-// A project has at most one open milestone (new issues go into it), so `openName` is the one already open, if any.
+const STATES = [["planned", "Planned"], ["open", "Open"], ["closed", "Closed"]];
+
+// A project has at most one open milestone (new issues go into it), so `openName` is the one already open, if any;
+// future ones are planned.
 function fields(m = {}, openName = null) {
   const f = [
     { name: "name", label: "Name", required: true, value: m.name, placeholder: "v1.0" },
@@ -13,7 +16,7 @@ function fields(m = {}, openName = null) {
     { name: "due_on", label: "Due on", type: "date", value: m.due_on ?? "" },
   ];
   const label = openName && openName !== m.name ? `State (“${openName}” is open: close it first to open another)` : "State";
-  f.push({ name: "state", label, type: "select", value: m.state ?? (openName ? "closed" : "open"), options: [["open", "Open"], ["closed", "Closed"]] });
+  f.push({ name: "state", label, type: "select", value: m.state ?? (openName ? "planned" : "open"), options: STATES });
   return f;
 }
 
@@ -29,7 +32,7 @@ export default {
     root.innerHTML = html`
       <div class="toolbar">
         <select class="input" data-state>
-          <option value="">All milestones</option><option value="open">Open</option><option value="closed">Closed</option>
+          <option value="">All milestones</option>${STATES.map(([id, label]) => html`<option value="${id}">${label}</option>`)}
         </select>
         <span class="spacer"></span>
         ${isAdmin() ? html`<button class="btn primary" data-new>+ New milestone</button>` : ""}
@@ -78,7 +81,7 @@ export default {
       root.querySelector("[data-list]").innerHTML = tableHtml(milestones, [
         { label: "Name", render: (m) => html`<b>${m.name}</b>${m.description ? html`<div class="muted small">${m.description}</div>` : ""}` },
         { label: "Due", render: (m) => html`<span class="${m.state === "open" && m.due_on && m.due_on < today ? "overdue" : ""}">${fmtDay(m.due_on)}</span>` },
-        { label: "State", render: (m) => html`<span class="tag ${m.state === "open" ? "ok" : ""}">${m.state}</span>` },
+        { label: "State", render: (m) => html`<span class="tag ${{ open: "ok", planned: "accent" }[m.state] ?? ""}">${m.state}</span>` },
         {
           label: "Issues",
           render: (m) => {
@@ -91,7 +94,7 @@ export default {
           label: "", className: "actions",
           render: (m) => html`<button class="btn small" data-action="board">Board</button>${isAdmin() ? html`
             <button class="btn small" data-action="edit">Edit</button>
-            <button class="btn small" data-action="toggle">${m.state === "open" ? "Close" : "Reopen"}</button>
+            <button class="btn small" data-action="toggle">${{ open: "Close", planned: "Open" }[m.state] ?? "Reopen"}</button>
             <button class="btn small danger" data-action="delete">Delete</button>` : ""}`,
         },
       ], "No milestones.");
