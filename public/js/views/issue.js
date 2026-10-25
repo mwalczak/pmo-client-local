@@ -1,7 +1,7 @@
 // Issue dialogs: comments, details/edit, attachments, history, and "new issue".
 import { api } from "../api.js";
 import {
-  app, PRIORITIES, STATUSES, canTriage, isAdmin, projectByKey, statusLabel, typeLabel, platformLabel, typeOptions,
+  app, PRIORITIES, STATUSES, canTriage, isAdmin, projectByKey, personLabel, assigneeOptions, statusLabel, typeLabel, platformLabel, typeOptions,
 } from "../state.js";
 import {
   html, el, openDialog, confirmDialog, formHtml, readForm, formDialog, diff, toast, fmtDate, fmtSize,
@@ -59,6 +59,7 @@ export async function openIssue(key, { onChange } = {}) {
   }
   const project = projectByKey(issue.project) ?? (await api.projects.get(issue.project).catch(() => null));
   const milestones = canTriage() ? await api.milestones.list(issue.project).catch(() => []) : [];
+  const users = isAdmin() ? await api.users.listAll().catch(() => []) : [];
   const objectUrls = [];
 
   const body = el(`<div>
@@ -293,6 +294,7 @@ export async function openIssue(key, { onChange } = {}) {
           name: "milestone_id", label: "Milestone", type: "select", value: issue.milestone?.id ?? "",
           options: [["", "—"], ...milestones.map((m) => [m.id, m.state === "open" ? m.name : `${m.name} (${m.state})`])],
         },
+        ...(isAdmin() ? [{ name: "assignee_id", label: "Assignee", type: "select", value: issue.assignee?.id ?? "", options: assigneeOptions(users) }] : []),
         { name: "private", label: "Private (admins and the reporter only)", type: "checkbox", value: issue.private, wrapClass: "span2" },
       ];
     }
@@ -306,6 +308,10 @@ export async function openIssue(key, { onChange } = {}) {
     return [];
   }
 
+  function assigneeLabel() {
+    return issue.assignee ? [personLabel(issue.assignee), issue.assignee.email].filter((v, i, a) => v && a.indexOf(v) === i).join(" · ") : "—";
+  }
+
   function metaHtml() {
     const rows = [
       ["Status", statusLabel(issue.status)],
@@ -313,6 +319,7 @@ export async function openIssue(key, { onChange } = {}) {
       ["Type", typeLabel(project, issue.type)],
       ["Platform", issue.platform ? platformLabel(project, issue.platform) : "—"],
       ["Milestone", issue.milestone?.name ?? "—"],
+      ["Assignee", assigneeLabel()],
       ["Duplicate of", issue.duplicate_of],
       ["Private", issue.private ? "yes" : "no"],
       ["Reporter", [issue.reporter.name, issue.reporter.email].filter(Boolean).join(" · ") || "—"],
@@ -331,6 +338,7 @@ export async function openIssue(key, { onChange } = {}) {
       return;
     }
     const readonly = [
+      ...(isAdmin() ? [] : [["Assignee", assigneeLabel()]]),
       ["Reporter", [issue.reporter.name, issue.reporter.email].filter(Boolean).join(" · ") || "—"],
       ["Source app", issue.source_app ?? "—"],
       ["Created", fmtDate(issue.created_at)],
@@ -356,11 +364,13 @@ export async function openIssue(key, { onChange } = {}) {
       description: issue.description ?? "",
       platform: issue.platform ?? "",
       milestone_id: issue.milestone?.id ?? "",
+      assignee_id: issue.assignee?.id ?? "",
       duplicate_of: issue.duplicate_of ?? "",
     };
     const patch = diff(original, values);
     if ("platform" in patch && patch.platform === "") patch.platform = null;
     if ("milestone_id" in patch && patch.milestone_id === "") patch.milestone_id = null;
+    if ("assignee_id" in patch && patch.assignee_id === "") patch.assignee_id = null;
     if (values.status === "duplicate") {
       if (!values.duplicate_of) throw new Error("Enter the key of the original issue.");
       if (patch.status || patch.duplicate_of) patch.duplicate_of = values.duplicate_of.toUpperCase();
@@ -499,7 +509,8 @@ export async function openIssue(key, { onChange } = {}) {
 
 // --- new issue --------------------------------------------------------------
 
-export function newIssueDialog(project, milestones, { onCreated } = {}) {
+export async function newIssueDialog(project, milestones, { onCreated } = {}) {
+  const users = isAdmin() ? await api.users.listAll().catch(() => []) : [];
   const types = typeOptions(project);
   const fields = [
     { name: "type", label: "Type", type: "select", value: types[0]?.[0], options: types },
@@ -517,6 +528,7 @@ export function newIssueDialog(project, milestones, { onCreated } = {}) {
     if (open || planned.length) {
       fields.push({ name: "milestone_id", label: "Milestone", type: "select", options: [["", open ? `Current (${open.name})` : "—"], ...planned.map((m) => [m.id, `${m.name} (planned)`])] });
     }
+    if (users.length) fields.push({ name: "assignee_id", label: "Assignee", type: "select", options: assigneeOptions(users) });
     fields.push(
       { name: "reporter_email", label: "Reporter e-mail", type: "email", required: app.me.kind === "app", hint: app.me.kind === "app" ? "Apps must name the reporter." : "Leave empty to report as yourself. A new e-mail gets an account and a key." },
       { name: "reporter_name", label: "Reporter name" },
@@ -536,6 +548,7 @@ export function newIssueDialog(project, milestones, { onCreated } = {}) {
       if (v.platform) body.platform = v.platform;
       if (v.priority) body.priority = v.priority;
       if (v.milestone_id) body.milestone_id = v.milestone_id;
+      if (v.assignee_id) body.assignee_id = v.assignee_id;
       if (v.reporter_email) body.reporter = { email: v.reporter_email, name: v.reporter_name || null };
       const issue = await api.issues.create(project.key, body);
       for (const f of v.files) {

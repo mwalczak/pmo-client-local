@@ -110,6 +110,7 @@ export const api = {
 
   users: {
     list: (query) => get("/v1/users", query),
+    listAll: (query) => all((page) => get("/v1/users", { ...query, ...page })),
     get: (id) => get(`/v1/users/${e(id)}`),
     create: (body) => post("/v1/users", body),
     update: (id, body) => patch(`/v1/users/${e(id)}`, body),

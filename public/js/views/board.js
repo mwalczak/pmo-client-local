@@ -1,6 +1,6 @@
 // Kanban board: one column per status, drag a card to change its status.
 import { api } from "../api.js";
-import { app, PRIORITIES, STATUSES, canTriage, currentProject, statusLabel, typeLabel, platformLabel, typeOptions } from "../state.js";
+import { app, PRIORITIES, STATUSES, canTriage, currentProject, statusLabel, typeLabel, platformLabel, typeOptions, personLabel } from "../state.js";
 import { html, toast } from "../ui.js";
 import { openIssue, newIssueDialog } from "./issue.js";
 
@@ -10,7 +10,7 @@ export default {
   mount(root) {
     const project = currentProject();
     // Like PMO, the board shows the current (open) milestone unless one was picked (e.g. from Milestones).
-    const filters = { q: "", type: "", priority: "", milestone: app.boardMilestone ?? "current", platform: "" };
+    const filters = { q: "", type: "", priority: "", milestone: app.boardMilestone ?? "current", platform: "", assignee: "" };
     app.boardMilestone = null;
     let issues = [];
     let milestones = [];
@@ -21,6 +21,7 @@ export default {
         <select class="input" data-f="type"><option value="">All types</option>${typeOptions(project).map(([id, l]) => html`<option value="${id}">${l}</option>`)}</select>
         <select class="input" data-f="priority"><option value="">All priorities</option>${PRIORITIES.map((p) => html`<option>${p}</option>`)}</select>
         <select class="input" data-f="milestone"><option value="current">Current milestone</option></select>
+        <select class="input" data-f="assignee"><option value="">Anyone</option></select>
         ${project.platforms.length ? html`<select class="input" data-f="platform"><option value="">All platforms</option>${project.platforms.map((p) => html`<option value="${p.id}">${p.label}</option>`)}</select>` : ""}
         <button class="btn" data-refresh>↻ Refresh</button>
         <span class="spacer"></span>
@@ -35,7 +36,7 @@ export default {
     });
     root.querySelector("[data-refresh]").addEventListener("click", load);
     root.querySelector("[data-new]").addEventListener("click", () =>
-      newIssueDialog(project, milestones, { onCreated: (i) => { issues.unshift(i); render(); } }));
+      newIssueDialog(project, milestones, { onCreated: (i) => { issues.unshift(i); fillAssignees(); render(); } }));
 
     async function load() {
       root.querySelector("[data-count]").textContent = "Loading…";
@@ -54,6 +55,7 @@ export default {
       sel.innerHTML = html`<option value="current">${open ? `Current (${open.name})` : "Current: none open"}</option><option value="">All milestones</option><option value="none">No milestone</option>${milestones.map((m) =>
         html`<option value="${m.id}">${m.name}${m.state === "open" ? "" : ` (${m.state})`}</option>`)}`;
       sel.value = filters.milestone;
+      fillAssignees();
       render();
     }
 
@@ -68,6 +70,24 @@ export default {
       return milestone === "none" ? !issue.milestone : issue.milestone?.id === milestone;
     }
 
+    function matchesAssignee(issue) {
+      if (!filters.assignee) return true;
+      if (filters.assignee === "none") return !issue.assignee;
+      return issue.assignee?.id === (filters.assignee === "me" ? app.me.id : filters.assignee);
+    }
+
+    // The people issues are assigned to (apps cannot list users).
+    function fillAssignees() {
+      const sel = root.querySelector('[data-f="assignee"]');
+      const people = new Map(issues.filter((i) => i.assignee).map((i) => [i.assignee.id, i.assignee]));
+      if (app.me?.kind === "user") people.delete(app.me.id);
+      const sorted = [...people.values()].sort((a, b) => personLabel(a).localeCompare(personLabel(b)));
+      sel.innerHTML = html`<option value="">Anyone</option>${app.me?.kind === "user" ? html`<option value="me">Assigned to me</option>` : ""}<option value="none">Unassigned</option>${sorted.map((u) =>
+        html`<option value="${u.id}">${personLabel(u)}</option>`)}`;
+      sel.value = [...sel.options].some((o) => o.value === filters.assignee) ? filters.assignee : "";
+      filters.assignee = sel.value;
+    }
+
     function visible() {
       const q = filters.q.toLowerCase();
       const milestone = milestoneFilter();
@@ -75,6 +95,7 @@ export default {
         (!filters.type || i.type === filters.type) &&
         (!filters.priority || i.priority === filters.priority) &&
         (!filters.platform || i.platform === filters.platform) &&
+        matchesAssignee(i) &&
         matchesMilestone(i, milestone) &&
         (!q || `${i.key} ${i.title} ${i.description ?? ""}`.toLowerCase().includes(q)));
     }
@@ -87,6 +108,7 @@ export default {
         <span class="tag">${typeLabel(project, i.type)}</span>
         ${i.platform ? html`<span class="tag">${platformLabel(project, i.platform)}</span>` : ""}
         ${i.milestone ? html`<span class="tag">◆ ${i.milestone.name}</span>` : ""}
+        ${i.assignee ? html`<span class="tag assignee" title="Assigned to ${personLabel(i.assignee)}">👤 ${personLabel(i.assignee)}</span>` : ""}
         ${i.private ? html`<span class="tag">private</span>` : ""}
         ${i.duplicate_of ? html`<span>→ ${i.duplicate_of}</span>` : ""}
         ${i.comment_count ? html`<span class="comment-count" title="${i.comment_count} comment${i.comment_count === 1 ? "" : "s"}">💬 ${i.comment_count}</span>` : ""}
@@ -109,6 +131,7 @@ export default {
     function applyChange(updated, deletedKey) {
       if (deletedKey) issues = issues.filter((i) => i.key !== deletedKey);
       else issues = issues.map((i) => (i.key === updated.key ? updated : i));
+      fillAssignees();
       render();
     }
 

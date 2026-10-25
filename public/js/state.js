@@ -30,6 +30,14 @@ export const canTriage = () => isAdmin() || isApp();
 
 export const currentProject = () => app.projects.find((p) => p.key === app.projectKey) ?? null;
 export const projectByKey = (key) => app.projects.find((p) => p.key === key) ?? null;
+export const personLabel = (u) => u.name ?? u.email ?? "—";
+
+// Who issues can be assigned to: any user, admins first. Only admins can list users (and assign).
+export function assigneeOptions(users) {
+  const sorted = [...users].sort((a, b) => (a.role === "admin" ? 0 : 1) - (b.role === "admin" ? 0 : 1) || personLabel(a).localeCompare(personLabel(b)));
+  return [["", "— Unassigned"], ...sorted.map((u) => [u.id, u.name ? `${u.name} (${u.email})` : u.email])];
+}
+
 export const statusLabel = (id) => STATUSES.find((s) => s.id === id)?.label ?? id;
 
 export function typeLabel(project, id) {
